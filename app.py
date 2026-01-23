@@ -5,40 +5,46 @@ import pandas as pd
 import os
 import warnings
 
-# ===============================
-# IMPORTANT: LIMIT CPU THREADS (Render Fix)
-# ===============================
+# =========================================
+# IMPORTANT: LIMIT CPU THREADS (RENDER SAFE)
+# =========================================
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
 app = Flask(__name__)
 
-# ===============================
-# FIX: DEFINE FEATURE NAMES ONCE
-# ===============================
+# =========================================
+# FEATURE NAMES (EXACT TRAINING ORDER)
+# =========================================
 FEATURE_NAMES = ['Time'] + [f'V{i}' for i in range(1, 29)] + ['Amount']
 
-# ===============================
+# =========================================
 # LOAD MODELS
-# ===============================
+# =========================================
 with open('ml model/random_forest_model.pkl', 'rb') as f:
     rf_model = pickle.load(f)
 
 with open('ml model/xgboost_model.pkl', 'rb') as f:
     xgb_model = pickle.load(f)
 
-# Force XGBoost to single thread (IMPORTANT)
-xgb_model.set_params(n_jobs=1, predictor="cpu_predictor")
+# Force XGBoost to CPU + single thread (Render fix)
+xgb_model.set_params(
+    n_jobs=1,
+    predictor="cpu_predictor",
+    verbosity=0
+)
 
 with open('ml model/hybrid_thresholds.pkl', 'rb') as f:
     hybrid_cfg = pickle.load(f)
 
-# ===============================
-# ROUTES
-# ===============================
+# =========================================
+# ROUTES (PAGES)
+# =========================================
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -79,30 +85,30 @@ def privacy_policy():
 def terms_conditions():
     return render_template('terms-conditions.html')
 
-# ===============================
-# PREDICTION API (FIXED)
-# ===============================
+# =========================================
+# PREDICTION API (FINAL FIXED VERSION)
+# =========================================
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
         data = request.get_json(force=True)
 
-        # Convert input to numpy array
-        features = np.array(data['features'], dtype=float)
+        # Convert input list to numpy
+        features = np.array(data.get('features', []), dtype=float)
 
         if features.size != 30:
-            return jsonify({'error': 'Exactly 30 values required'}), 400
+            return jsonify({'error': 'Exactly 30 feature values required'}), 400
 
         features = features.reshape(1, -1)
 
-        # FIX: Create DataFrame with EXACT feature names
+        # Create DataFrame with EXACT feature names
         features_df = pd.DataFrame(features, columns=FEATURE_NAMES)
 
         selected_model = data.get('model', 'hybrid')
 
-        # -------------------------------
+        # ---------------------------------
         # RANDOM FOREST
-        # -------------------------------
+        # ---------------------------------
         if selected_model == 'rf':
             prob = rf_model.predict_proba(features_df)[0][1]
             return jsonify({
@@ -112,11 +118,15 @@ def predict():
                 'accuracy': float(hybrid_cfg['rf_accuracy'])
             })
 
-        # -------------------------------
-        # XGBOOST (FIXED)
-        # -------------------------------
+        # ---------------------------------
+        # XGBOOST (CRITICAL FIX)
+        # ---------------------------------
         if selected_model == 'xgb':
-            prob = xgb_model.predict_proba(features_df)[0][1]
+            prob = xgb_model.predict_proba(
+                features_df,
+                validate_features=False
+            )[0][1]
+
             return jsonify({
                 'prediction': int(prob >= hybrid_cfg['final_threshold']),
                 'probability': float(prob),
@@ -124,11 +134,15 @@ def predict():
                 'accuracy': float(hybrid_cfg['xgb_accuracy'])
             })
 
-        # -------------------------------
-        # HYBRID (RF + XGB)
-        # -------------------------------
+        # ---------------------------------
+        # HYBRID (RF + XGB) – FINAL FIX
+        # ---------------------------------
         rf_prob = rf_model.predict_proba(features_df)[0][1]
-        xgb_prob = xgb_model.predict_proba(features_df)[0][1]
+
+        xgb_prob = xgb_model.predict_proba(
+            features_df,
+            validate_features=False
+        )[0][1]
 
         rf_weight = hybrid_cfg['rf_accuracy']
         xgb_weight = hybrid_cfg['xgb_accuracy']
@@ -151,9 +165,9 @@ def predict():
             'details': str(e)
         }), 500
 
-# ===============================
+# =========================================
 # PWA SUPPORT
-# ===============================
+# =========================================
 @app.route('/sw.js')
 def service_worker():
     return send_from_directory('static', 'sw.js', mimetype='application/javascript')
@@ -166,9 +180,9 @@ def manifest():
 def offline():
     return render_template('offline.html')
 
-# ===============================
+# =========================================
 # MAIN
-# ===============================
+# =========================================
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
