@@ -1,4 +1,4 @@
-# 🔐 Machine Learning Approach on Credit Card Fraud Detection System: A Progressive Web Application
+# 🔐 Credit Card Fraud Detection Using Machine Learning Approach : A Progressive Web Application
 
 <div align="center">
 
