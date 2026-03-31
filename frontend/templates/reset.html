@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reset Password</title>
+
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#1976d2" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="FraudDetect" />
+    <meta
+      name="description"
+      content="AI-powered credit card fraud detection system"
+    />
+
+    <!-- Icons -->
+    <link rel="icon" href="{{ url_for('static', filename='images/1.ico') }}" />
+    <link
+      rel="apple-touch-icon"
+      href="{{ url_for('static', filename='images/icon-192.png') }}"
+    />
+
+    <!-- Manifest -->
+    <link
+      rel="manifest"
+      href="{{ url_for('static', filename='manifest.json') }}"
+    />
+
+    <!-- CSS -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+  </head>
+
+  <body class="auth-page">
+    <div class="auth-container">
+      <h2>Reset Password</h2>
+
+      <input type="email" id="email" placeholder="Enter Email" required />
+
+      <input type="text" id="otp" placeholder="Enter OTP" required />
+
+      <input
+        type="password"
+        id="password"
+        placeholder="New Password"
+        required
+      />
+
+      <button onclick="resetPassword()">Reset Password</button>
+
+      <p>Back to <a href="/login">Login</a></p>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer-bottom">
+      <p>
+        &copy; 2026 Credit Card Fraud Detection System. All rights reserved.
+      </p>
+      <p>Built with ❤️ using Machine Learning</p>
+    </footer>
+
+    <!-- JS -->
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/pwa.js') }}"></script>
+  </body>
+</html>

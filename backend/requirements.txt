@@ -1,0 +1,16 @@
+numpy
+pandas
+scikit-learn
+xgboost
+lightgbm
+catboost
+imbalanced-learn
+matplotlib
+seaborn
+flask
+pymongo
+flask-pymongo
+bcrypt
+PyJWT
+python-dotenv
+werkzeug
